@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KeyForge Task Portal</title>
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background: linear-gradient(-45deg,#0f0f0f,#1a1a1a,#101820,#1b1b2f);
+  background-size: 400% 400%;
+  animation: bgMove 15s ease infinite;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+@keyframes bgMove {
+  0% { background-position:0% 50%; }
+  50% { background-position:100% 50%; }
+  100% { background-position:0% 50%; }
+}
+.card {
+  background: rgba(20,20,20,0.95);
+  padding: 30px;
+  border-radius: 16px;
+  width: 350px;
+  text-align: center;
+  box-shadow: 0 0 30px rgba(0,0,0,0.6);
+}
+h2 { margin-top: 0; }
+button {
+  padding: 12px 20px;
+  margin: 10px 0;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(90deg,#00b7ff,#00ffd4);
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+button:hover { transform: scale(1.05); }
+.key, .custom-link {
+  margin-top: 15px;
+  background: black;
+  padding: 12px;
+  border-radius: 8px;
+  letter-spacing: 2px;
+  word-break: break-all;
+}
+.timer {
+  margin-top: 10px;
+  color: #aaa;
+  font-size: 14px;
+}
+#copyLinkBtn, #createLinkBtn { display: none; } /* hide initially */
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h2>🔑 Complete Tasks to Get Key</h2>
+
+  <!-- Task Section -->
+  <div>
+    <p>Task 1: Subscribe</p>
+    <button onclick="completeTask('t1')">Open Channel</button>
+    <span id="t1Status"></span>
+  </div>
+
+  <div>
+    <p>Task 2: Like Video</p>
+    <button onclick="completeTask('t2')">Open Video</button>
+    <span id="t2Status"></span>
+  </div>
+
+  <div>
+    <p>Task 3: Visit Link</p>
+    <button onclick="completeTask('t3')">Open Link</button>
+    <span id="t3Status"></span>
+  </div>
+
+  <hr>
+
+  <!-- Key Section -->
+  <div>
+    <button id="generateBtn" onclick="generateKey()" disabled>Generate Key</button>
+    <div class="key" id="keyDisplay">Complete all tasks to get key</div>
+    <button onclick="copyKey()">Copy Key</button>
+    <p class="timer" id="timer"></p>
+  </div>
+
+  <hr>
+
+  <!-- Custom Link Section -->
+  <div>
+    <h2>🔗 Create Your Own Link</h2>
+    <button id="createLinkBtn" onclick="createCustomLink()">Create Link</button>
+    <div class="custom-link" id="customLinkDisplay"></div>
+    <button id="copyLinkBtn" onclick="copyCustomLink()">Copy Link</button>
+  </div>
+</div>
+
+<script>
+// Task tracking
+let tasks = {t1:false, t2:false, t3:false};
+
+// Example links
+const links = {
+  t1: "https://youtube.com/@YourChannel",
+  t2: "https://youtube.com/watch?v=VIDEOID",
+  t3: "https://example.com/" + Math.random().toString(36).substring(2,8)
+};
+
+// Load saved tasks from localStorage
+function loadTasks(){
+  const saved = JSON.parse(localStorage.getItem("tasks"));
+  if(saved){
+    tasks = saved;
+    for(let t in tasks){
+      if(tasks[t]) document.getElementById(t+"Status").innerText = " ✅";
+    }
+  }
+}
+loadTasks();
+
+// Complete task function
+function completeTask(taskId){
+  window.open(links[taskId], "_blank");
+  tasks[taskId] = true;
+  document.getElementById(taskId+"Status").innerText = " ✅";
+  localStorage.setItem("tasks", JSON.stringify(tasks));
+  checkAllTasks();
+}
+
+// Check if all tasks completed
+function checkAllTasks(){
+  if(tasks.t1 && tasks.t2 && tasks.t3){
+    document.getElementById("generateBtn").disabled = false;
+    document.getElementById("keyDisplay").innerText = "You can generate your key!";
+    document.getElementById("createLinkBtn").style.display = "inline-block"; // unlock link button
+  }
+}
+
+// Random key generator
+function randomKey(length = 20){
+  let chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let key = "";
+  for(let i=0; i<length; i++){
+    key += chars.charAt(Math.floor(Math.random()*chars.length));
+  }
+  return key;
+}
+
+// Generate key
+function generateKey(){
+  let key = randomKey();
+  let expire = Date.now() + 3600000; // 1 hour
+  localStorage.setItem("task_key", key);
+  localStorage.setItem("task_expire", expire);
+  document.getElementById("keyDisplay").innerText = key;
+  startTimer(expire);
+}
+
+// Copy key
+function copyKey(){
+  let key = document.getElementById("keyDisplay").innerText;
+  navigator.clipboard.writeText(key);
+  alert("Key copied!");
+}
+
+// Expiration timer (tasks stay)
+function startTimer(expire){
+  let interval = setInterval(function(){
+    let remaining = expire - Date.now();
+    if(remaining <= 0){
+      clearInterval(interval);
+      document.getElementById("timer").innerText = "Key expired";
+      localStorage.removeItem("task_key");
+      localStorage.removeItem("task_expire");
+      document.getElementById("keyDisplay").innerText = "Generate a new key if needed";
+      // keep generate button enabled if tasks complete
+      if(tasks.t1 && tasks.t2 && tasks.t3){
+        document.getElementById("generateBtn").disabled = false;
+        document.getElementById("createLinkBtn").style.display = "inline-block";
+      }
+      return;
+    }
+    let mins = Math.floor(remaining / 60000);
+    let secs = Math.floor((remaining % 60000) / 1000);
+    document.getElementById("timer").innerText = "Expires in " + mins + "m " + secs + "s";
+  }, 1000);
+}
+
+// Auto-load saved key and unlock link button if tasks complete
+window.onload = function(){
+  loadTasks();
+
+  let key = localStorage.getItem("task_key");
+  let expire = localStorage.getItem("task_expire");
+  if(key && Date.now() < expire){
+    document.getElementById("keyDisplay").innerText = key;
+    startTimer(expire);
+    document.getElementById("generateBtn").disabled = false;
+  }
+
+  if(tasks.t1 && tasks.t2 && tasks.t3){
+    document.getElementById("createLinkBtn").style.display = "inline-block"; // unlock link button
+  }
+};
+
+// Custom link generator
+function createCustomLink(){
+  let link = "https://example.com/" + Math.random().toString(36).substring(2,10);
+  document.getElementById("customLinkDisplay").innerText = link;
+  document.getElementById("copyLinkBtn").style.display = "inline-block";
+}
+
+// Copy custom link
+function copyCustomLink(){
+  let link = document.getElementById("customLinkDisplay").innerText;
+  navigator.clipboard.writeText(link);
+  alert("Link copied!");
+}
+</script>
+
+</body>
+  </html>
