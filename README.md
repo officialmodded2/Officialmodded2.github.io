@@ -1,4 +1,3 @@
-# Officialmodded2.github.io
 # Rivals Hub Key System
 
 This repository contains the **Rivals Hub Key Generator Website**.
